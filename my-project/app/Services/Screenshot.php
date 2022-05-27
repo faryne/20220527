@@ -4,6 +4,7 @@
 namespace App\Services;
 
 
+use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriInterface;
@@ -14,27 +15,54 @@ use Spatie\Crawler\CrawlObservers\CrawlObserver;
 class Screenshot
 {
     public function FetchPage($url) {
-//        $observer = new MyCrawlObserver();
-//        Browsershot::url((string)$url)
-//            ->setNodeBinary("/opt/bitnami/node/bin/node")
-//            ->setNpmBinary("/opt/bitnami/node/bin/npm")
-////            ->setIncludePath("/opt/bitnami/node/bin")
-//            ->addChromiumArguments([
-//                '--disable-extensions'
-//            ])
-//            ->save(public_path("abc.jpg"));
-//            ->save("\"".public_path("abc.jpg")."\"");
-//        Crawler::create()->startCrawling($url)
-//                        ->addCrawlObserver(MyCrawlObserver);
-//        return $observer->getPages();
+        // retrieving title of the site
+        $title = $this->getSiteTitle($url);
+        // capture website snapshot via 3rd party service
+        $image = $this->callSnapshotService($url);
+        $imageName = md5(microtime(true).$url).".jpg";
+        // write into public folder
+        $fp = fopen(public_path($imageName), "w");
+        fwrite($fp, $image);
+        fclose($fp);
+
         $model = new \App\Models\screenshot();
-        $model->title ="abc";
-        $model->path = "/a/b/c.jpg";
+        $model->title = $title;
+        $model->path = $imageName;
         $model->url = $url;
         $result = $model->save();
-//        dd($result);
-//        dd($model);/
         return $result;
+    }
+
+    public function callSnapshotService($url) {
+        $req = [
+            'url' => $url,
+            'delay' => 1800,
+        ];
+        $token = config('screenshot.token');
+        $secret = config('screenshot.secret');
+        $sha256 = hash('sha256', http_build_query($req).$secret);
+
+        // Ref: https://doc.website-download.io/en/screenshot-api/parameters/
+        $url = "https://api.screenshot-capture-api.com/v1/capture/".$token."/".$sha256;
+
+        $client = new Client();
+        $resp = $client->get($url, [
+            'query' => $req
+        ]);
+        return $resp->getBody()->getContents();
+    }
+
+    public function getSiteTitle($url) {
+        $content = file_get_contents($url);
+        $dom = new \DOMDocument();
+        if (@$dom->loadHTML($content)) {
+            $titles = $dom->getElementsByTagName("title");
+            if ($titles->length > 0) {
+                return $titles->item(0)->nodeValue;
+            }
+        }
+        return "";
+
     }
 }
 

@@ -14,8 +14,8 @@
             @if ($errors->any())
                 <p class="alert alert-warning">{{ $errors->first("url") }}</p>
             @endif
-            @if (isset($result))
-                {{$result}}
+            @if (isset($result) && $result == true)
+                <p class="alert alert-success">處理完畢</p>
             @endif
             <input type="text" name="url" required url class="form-control" value="@if(isset($oldValue)) {{ $oldValue }} @endif "/>
             <button type="submit" class="btn btn-primary">Submit</button>
@@ -35,7 +35,7 @@
                 <tr>
                     <td>{{ $screenshot->url }}</td>
                     <td>{{ $screenshot->title }}</td>
-                    <td>{{ $screenshot->path  }}</td>
+                    <td><a href="{{$screenshot->path}}" target="_blank">{{ $screenshot->path  }}</a></td>
                 </tr>
             @empty
                 <tr>
