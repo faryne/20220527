@@ -1,7 +1,7 @@
 # How to start 
 
 All services built on the base of docker. You can start service via the following the command:
-`docker-compose up -f`
+`docker-compose up -d`
 
 And then run:
 `docker-compose exec myapp php artisan migrate`
